@@ -12,16 +12,22 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-// Extiende de OncePerRequestFilter.
-// Este filtro será ejecutado para algunas peticiones
-// chequea si la peticion tiene un token JWT valido.
-// Si lo tiene, setea la autentificacion en el contexto para especificar que
-// el usuario actual está autenticado
+/**
+ *
+ * Extiende de OncePerRequestFilter.
+ * Este filtro será ejecutado para algunas peticiones
+ * chequea si la peticion tiene un token JWT valido.
+ * Mediante el uso JwtToken.getUsernameFromToken() obtiene el username del token,
+ * carga el UserDetails desde el JwtUserDetailsService por medio del username.
+ * Una vez obtiene el UserDetails, por medio de JwtTokenUtil.validateToken(token, userDetails),
+ * valida la autenticacion, crea un objeto UsernamePasswordAuthenticationToken y lo publica
+ * en el contexto de seguridad.
+ *
+ */
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
@@ -35,19 +41,20 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+        // Extraemos el token del header request
         final String requestTokentHeader = request.getHeader("Authorization");
 
         String username = null;
         String jwtToken = null;
 
-        System.out.println("TEST[JwtRequestFilter]: doFilter() --> "+requestTokentHeader);
         // Si existe el token en la cabecera y empieza por "Bearer",
         // retirale el Bearer y obten solo el token
         if (requestTokentHeader != null && requestTokentHeader.startsWith("Bearer ")) {
 
             jwtToken = requestTokentHeader.replace("Bearer ", "");
-            System.out.println("TEST[JwtRequestFilter]: doFilter() --> if == true -->"+jwtToken);
             try {
+                // obtenemos el nombre de usuario del token recibido y manejamos las excepciones por si las hubiese
                 username = tokenUtil.getUsernameFromToken(jwtToken);
             }
             catch (IllegalArgumentException e ) {
@@ -61,18 +68,20 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             logger.warn("JWT Token does not begin with Bearer String");
         }
 
-        //Una vez tenemos el token, validamos
+        //Una vez tenemos el username, comprobamos si hay alguna autenticacion el el securityContext y si no hay, validamos
         if(username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
             // si el token es valido, configura Spring Security
-            if ((tokenUtil.validateToken(jwtToken, userDetails))) {
-                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
+            if (tokenUtil.validateToken(jwtToken, userDetails)) {
+                // Creamos la clase Authentication
+                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
-                usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 // despuesr de setear la autenticacion en el contexto, tenemos
                 // que especificar que el usuario actual está autenticado.
-                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
         }
         filterChain.doFilter(request, response);

@@ -13,8 +13,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 
-// El servicio que se encarga de pelear contra el repositorio donde
-// hacemos la persistencia de los usuarios con sus credenciales.
+/**
+ *
+ * Esta clase hara de servicio de UserDetails. Implementará UserDetailsService y
+ * sobreescribiremos el metodo loadUserByUsername(String username) e implementaremos
+ * un metodo save(UserDTO user), el cual será usado para
+ */
 
 @Service
 public class JwtUserDetailsService implements UserDetailsService {
@@ -26,6 +30,11 @@ public class JwtUserDetailsService implements UserDetailsService {
     private PasswordEncoder bcryptEncoder;
 
 
+    // En este metodo puede cargar el usuario con el username que le paso por parametro
+    // desde el repositorio. Una vez tenga el usuario, al objeto de la clase UserDetails
+    // que retornamos, solo le añadiremos los datos de seguridad necesario (username,
+    // password, roles). Los demás datos los cargaremos despues de hacer la autenticacion,
+    // mediante una petición que nos hará el cliente una vez tenga el token.
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 

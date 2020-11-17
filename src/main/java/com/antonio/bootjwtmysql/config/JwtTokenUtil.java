@@ -12,8 +12,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-// JwtTokenUtil es responsable de ejecutar operaciones JWT como la creacion y la validacion
-// haciendo uso de io.jsonwebtoken.Jwts.
+/**
+ *
+ * Esta clase es la responsable de todos los metodos relacionados con el token
+ * como la validacion, la obtencion del nombre de usuario desde el token,
+ * la generacion del token  a partir del UserDetails, etc.
+ *
+ */
+
 @Component
 public class JwtTokenUtil {
     
@@ -65,7 +71,7 @@ public class JwtTokenUtil {
                 .signWith(SignatureAlgorithm.HS512, secret).compact();
     }
 
-    // validamos el token
+    // Metodo encargado de comparar le token
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = getUsernameFromToken(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
